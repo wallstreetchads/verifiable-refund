@@ -1,0 +1,16 @@
+{
+  "name": "wsc-contracts-valhalla",
+  "version": "1.0.0",
+  "description": "Contains code for the smart contract deployed, the ABI, the Ethereum addresses of the WSC ERC-721  tokens, and finally, the root hash, generated and stored in the smart contract to allow efficient and cheap validation of ownership.",
+  "main": "root.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ethers": "^6.10.0",
+    "keccak256": "^1.0.6",
+    "merkletreejs": "^0.3.11"
+  }
+}

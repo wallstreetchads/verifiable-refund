@@ -1,8 +1,15 @@
 // Merkle Tree generation 
 const wscOwnerAddresses = require('./wscOwnerAddressesSnapshot.json');
+const { getAddress} = require('ethers');
 const { MerkleTree } = require('merkletreejs');
 const keccac256 = require('keccak256');
 
+/**
+ * @IMPORTANT Using this program to interact directly with the deployed refund contract
+ * is an agreement to the refund policy.
+ */
+
+// Utility Functions
 
 function generateRealAddressList() {    
     const addresses = Object.keys(wscOwnerAddresses);
@@ -13,6 +20,44 @@ function generateMerkleTreeAbstract(addresses) {
     const leaves = addresses.map(x => keccac256(x));
     const tree = new MerkleTree(leaves, keccac256, { sortPairs: true});
     return [tree, leaves];
+}
+
+function generateMappingOfAddressesToLeaves(addresses, leaves) {
+    const mapping = {};
+    for (let i = 0; i < addresses.length; i++) {
+        const address = addresses[i];
+        const leaf = leaves[i];
+        mapping[address] = leaf;
+    }
+    return mapping;
+}
+
+// Higher Order Functions
+
+/**
+ * Used in order to generate the proof of a specific wallet address, which
+ * can be used to directly interact with the contract and provide the proof
+ * of one's ethereum address, which is required to claim one's refund.
+ * 
+ * @param {String: EthereumAddress} address 
+ * @returns {}
+ */
+function getMerkleProof(address) {
+    if (!address) throw new Error("Address is required");
+    if (typeof address !== 'string') throw new TypeError("Address must be a string");
+    console.log("🚀 ~ getMerkleProof ~ address:", address)
+    // const testAddresses = generateFakeAddressList();
+    const testAddresses = generateRealAddressList();
+    const [merkleTree, leaves] = generateMerkleTreeAbstract(testAddresses);
+    console.log("🚀 ~ getMerkleProof ~ merkleTree:", merkleTree)
+    const mappingOfTreeToLeaves = generateMappingOfAddressesToLeaves(testAddresses, leaves);
+    console.log("🚀 ~ getMerkleProof ~ mappingOfTreeToLeaves:", mappingOfTreeToLeaves)
+    const checksummedAddress = getAddress(address);
+    console.log("🚀 ~ getMerkleProof ~ checksummedAddress:", checksummedAddress)
+    const leaf = mappingOfTreeToLeaves[checksummedAddress];
+    const hexProof = merkleTree.getHexProof(leaf);
+    console.log("🚀 ~ getMerkleProof ~ hexProof:", hexProof)
+    return hexProof;
 }
 
 /**
@@ -47,4 +92,6 @@ function getRoot() {
 
 getRoot();
 
+// const TEST_ADDRESS = "";
+// getMerkleProof(TEST_ADDRESS);
 
