@@ -1,3 +1,8 @@
+/**
+ * @IMPORTANT any direct interaction by the Individual with the smart contract on the Ethereum blockchain pertaining 
+ * to this refund process is also considered as an acceptance of these terms and conditions.
+ */
+
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
@@ -6,9 +11,7 @@ import "@openzeppelin/contracts/access/Ownable.sol"; // Importing Ownable for ac
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /*
-
 REFUND POLICY
-
 I. Eligibility for Refund
 Eligible Individuals: Only current holders of Non-Fungible Tokens (NFTs) located at Ethereum blockchain address 0xf341ed41475fedd4704902b4b82f1d2eb4d477e8 are eligible for a refund (“Refund”) under this policy.
 
@@ -18,7 +21,7 @@ ERC-721 Token: The specific item eligible for a refund under this policy is the 
 III. Refund Process
 Exclusive Website for Claim: This website is the sole authorized platform for initiating a refund claim. No other websites or platforms are recognized for this purpose.
 Terms Acceptance and Warranties: By proceeding to process a refund, the holder / user / individual explicitly agrees to the terms and conditions set forth on this website and makes the warranties required in the refund procedure. 
-Inclusion of Direct Contract Interactions: In addition to agreement through this website, any direct interaction by the Individual with the smart contract on the Ethereum blockchain pertaining to this refund process is also considered as an acceptance of these terms and conditions. By engaging with the smart contract, the user acknowledges and understands that it is agreeing to adhere to the stipulations set forth in this policy and makes the necessary agreements by this refund procedure.
+Inclusion of Direct Contract Interactions: In addition to agreement through this website, any direct interaction by the Individual with the smart contract on the Ethereum blockchain pertaining to this refund process is also considered as an acceptance of these terms and conditions. By engaging with the smart contract, the user acknowledges and understands that it is agreeing to adhere to the stipulations set forth in this policy and makes the necessary agreements by this refund procedure. 
 
 IV. Timeframe
 Duration of Contract: Absent unforeseen technological issues, the refund smart contract will remain available indefinitely, or until such a time as the Ethereum blockchain ceases to function, whichever comes first.
@@ -80,6 +83,8 @@ contract SnapshotMerkleDistribution  is ReentrancyGuard, Ownable {
 
     mapping(address => bool) public walletHasClaimedSnapshot;
     mapping(address => string) public userAgreements;
+    // @dev Added to prevent multiple claims over the same NFT ID
+    mapping(uint256 => bool) public NFTHasClaimed;
 
     bool public isRefundActive = false;
     bool public contractIsLocked = false;
@@ -96,21 +101,27 @@ contract SnapshotMerkleDistribution  is ReentrancyGuard, Ownable {
 
     constructor() Ownable(msg.sender) {}
 
+    // #approved
     // @dev Necessary to allow us to retrieve the total supply of NFTs and 
     // amount owned by a specific wallet
     function setNFTContract(address _nftContract) external onlyOwner {
         require(_nftContract != address(0), "Invalid address.");
+        // @dev Prevents deployer from changing NFT contract after refund process has begun 
+        require(contractIsLocked == false, "Contract is locked.");
         // @dev - should we add locking (?)
         nftContract = ERC721Enumerable(_nftContract);
     }
 
+    // #approved
     function setMutiSignatureWallet(address _multiSigWallet) external onlyOwner {
         // @dev - Prevents contract deployer from modifying the multisignatture wallet later on and
         // withdrawing the crypto to it instead of the original multisignature wallet.
         require(contractIsLocked == false, "Contract is locked.");
+        require(_multiSigWallet != address(0), "Invalid address.");
         multisignatureWallet = _multiSigWallet;
     }
 
+    // #approved
     function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
         // @dev - Prevents contract deployer from uploading a merkle root hash representing a different
         // snapshot and authorizing a different set of wallets to claim the refund.
@@ -118,6 +129,7 @@ contract SnapshotMerkleDistribution  is ReentrancyGuard, Ownable {
         merkleRoot = _merkleRoot;
     }    
 
+    // #approved
     // @dev Allows us to ensure that the amount returned to each wallet remains fixed throughout the 
     // whole liquidation process.
     function saveOriginalBalance() external onlyOwner() {
@@ -127,29 +139,34 @@ contract SnapshotMerkleDistribution  is ReentrancyGuard, Ownable {
         originalBalance = address(this).balance;
     }
 
+     // #approved
     // @dev Activates refund
     function activate() external onlyOwner() {
         isRefundActive = true;
     }
 
+     // #approved
     // @dev Deactivates refund
     function deactivate() external onlyOwner() {
         require(contractIsLocked == false, "Contract is locked.");
         isRefundActive = false;
     }
 
+    // #approved
     // @dev Irreversible action - Contract lock prevents modification of 1- emergency 
     // multisignature wallet and merkle root change, which cements the snapshot forever.
     function lockContract() external onlyOwner() {
         contractIsLocked = true;
     }
 
+    // #approved
     // @dev Irreversible action - Locks the contract in perpetuity, preventing any emergency
     // withdrawal.
     function lockInPerpetuity() external onlyOwner() {
         lockedInPerpetuity = true;
     }
 
+    // #approved
     // @dev Sanity function in case something deeply wrong happens - allows the funds to be sent
     // to the multisignature wallet, thus protecting the funds from being lost. 
     function emergencyWithdrawalToMultiSignature() external onlyOwner {
@@ -168,35 +185,43 @@ contract SnapshotMerkleDistribution  is ReentrancyGuard, Ownable {
     //     contractIsLocked = false;
     // }
 
-    // function setTotalAmountOverride(uint16 _totalAmount) external onlyOwner {
-    //     require(contractIsLocked == false, "Contract is locked.");
-    //     totalAmountOverride = _totalAmount;
-    // }
-
     receive() external payable {}
 
     // Allows us to test the structure based on @setSnapshotOfWalletsWithoutTokenCount
     function goToValhalla(string memory _userAgreement, bytes32[] calldata _merkleProof) external nonReentrant {
-        
+
         require(isRefundActive, "Refund is not active.");
         require(address(this).balance > 0, "Contract balance is zero.");
         require(walletHasClaimedSnapshot[msg.sender] == false, "You have already claimed your ETH.");
         require(originalBalance > 0, "Original balance is zero.");
 
-        // Helps calculate the share of user
-        uint256 totalSupply = nftContract.totalSupply();
-        require(totalSupply > 0, "No NFTs found in the contract.");
-        uint256 userNFTBalance = nftContract.balanceOf(msg.sender);
-        require(userNFTBalance > 0, "User balance of NFT is zero.");
+        // #approved
+        // @dev Helps calculate the share of user
+        // Hard coded so that potential change to future minting will not change the denominator
+        uint256 totalSupply = 3334; 
 
-        // Temporary override for testing
-        // if (totalAmountOverride > 0) {
-        //     totalSupply = totalAmountOverride;
-        // }
-        
+        // #approved
+        uint256 userNFTBalance = nftContract.balanceOf(msg.sender);
+        require(userNFTBalance > 0, "User balance of NFT is zero."); 
+
+        /** Calculates # of NFTs that can be claimed */
+
+        // @dev Iterates through NFTs of msg.sender and identify the unclaimed ones
+        uint256 unclaimedNFTBalance;
+        for(uint256 i; i < userNFTBalance; i++){
+            uint256 nftId = nftContract.tokenOfOwnerByIndex(msg.sender, i);
+            // This NFT has already claimed or greater than current max ID
+            if(NFTHasClaimed[nftId] || nftId >= 3334) continue; 
+
+            unclaimedNFTBalance++;
+            // Mark the NFT as claimed to prevent multiple claims
+            NFTHasClaimed[nftId] = true;
+        }
+
+        require(unclaimedNFTBalance > 0, "User balance of NFT is zero.");
+
         // Calculate amount owed to user
-        // uint256 userShare = (address(this).balance) * userNFTBalance / totalSupply;
-        uint256 userShare = originalBalance * userNFTBalance / totalSupply;
+        uint256 userShare = originalBalance * unclaimedNFTBalance / totalSupply;
         require(userShare > 0, "User share is zero.");
 
         // Verify merkle proof
@@ -205,18 +230,18 @@ contract SnapshotMerkleDistribution  is ReentrancyGuard, Ownable {
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
         require(MerkleProof.verify(_merkleProof, merkleRoot, leaf), "Invalid proof.");
 
-        (bool sent, ) = msg.sender.call{value: userShare}("");
-        require(sent, "Failed to send Ether");
-
-        // Prevents multiple claims from being made
+        // Prevents multiple claims from being made, better to move here to following the check-effects-interaction pattern
         walletHasClaimedSnapshot[msg.sender] = true;
         userAgreements[msg.sender] = _userAgreement;
-        
+
+        (bool sent, ) = msg.sender.call{value: userShare}("");
+
+        require(sent, "Failed to send Ether");
+
     }
 
     // Helper Functions
     // @dev Future improvement includes potentially storing all the addresses in an array instead of just a mapping
-
     function getClaimedStatusOfWallet(address _walletAddress) external view returns (bool) {
         return walletHasClaimedSnapshot[_walletAddress];
     }
@@ -224,7 +249,5 @@ contract SnapshotMerkleDistribution  is ReentrancyGuard, Ownable {
     function getUserAgreementOfWallet(address _walletAddress) external view returns (string memory) {
         return userAgreements[_walletAddress];
     }
-    
+
 }
-
-

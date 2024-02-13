@@ -92,6 +92,4 @@ function getRoot() {
 
 getRoot();
 
-// const TEST_ADDRESS = "";
-// getMerkleProof(TEST_ADDRESS);
 
