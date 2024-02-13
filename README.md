@@ -24,7 +24,7 @@ In order to validate the **only** the WSC ERC-721 addresses are allowed to get a
 - Install the necessary packages with `npm install`
 - Run the verify script.js with `node verify.js` within your terminal of choice
 
-# Steps to Validate Properties of Contract
+## Steps to Validate Properties of Contract
 
 1. Head to [Etherscan link of contract]((https://etherscan.io/address/0x03e4ED57c77034e1e7d742C99a5434679897d192))
 2. Click on Contract and then on "Read Contract"
