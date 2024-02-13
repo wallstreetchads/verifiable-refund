@@ -39,8 +39,8 @@ In order to validate the **only** the WSC ERC-721 addresses are allowed to get a
 3. [x] Set multisignature wallet for emergency withdrawal with `setMultiSignatureWallet`
 4. Send crypto to contract
 5. Save original balance `saveOriginalBalance`
-6. Activate contract `activate`
-7. Lock contract to prevent NFT adress, merkle tree hash, or original balance change.
+6. Lock contract to prevent NFT adress, merkle tree hash, or original balance change.
+7. Activate contract
 
 ## Contract Description
 
