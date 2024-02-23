@@ -24,6 +24,16 @@ In order to validate the **only** the WSC ERC-721 addresses are allowed to get a
 - Install the necessary packages with `npm install`
 - Run the verify script.js with `node verify.js` within your terminal of choice
 
+# NEW REFUND CONTRACT
+
+## High Level
+
+- The second stage of the refund process involves directly depositing ETH into the NFT owner's wallets.
+- In order to do so, the script to generate the wallets and their respective refund amount has been created and can be found within function `generateAmountOfETHForEveryWallet.js` 
+- The script above saves the wallets in batches of 200, which will then be sent to the `MultiRecipientETHDistributionContract.sol` created in order to provide a direct deposit.
+
+# OLD REFUND CONTRACT
+
 ## Steps to Validate Properties of Contract
 
 1. Head to [Etherscan link of contract]((https://etherscan.io/address/0x03e4ED57c77034e1e7d742C99a5434679897d192))
