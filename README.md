@@ -47,10 +47,12 @@ In order to validate the **only** the WSC ERC-721 addresses are allowed to get a
 1. [x] Set the correct NFT contract address internally `setNFTContract`
 2. [x] Set the merkle tree hash `setMerkleRoot`
 3. [x] Set multisignature wallet for emergency withdrawal with `setMultiSignatureWallet`
-4. Send crypto to contract
-5. Save original balance `saveOriginalBalance`
-6. Lock contract to prevent NFT adress, merkle tree hash, or original balance change.
-7. Activate contract
+4. [x] Send crypto to contract
+5. [x] Save original balance `saveOriginalBalance`
+6. [x] Lock contract to prevent NFT adress, merkle tree hash, or original balance change.
+7. [x] Activate contract
+
+**Note:** First stage of refund has been activated before moving into stage two.
 
 ## Contract Description
 
